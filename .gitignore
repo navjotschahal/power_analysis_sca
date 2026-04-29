@@ -9,7 +9,6 @@ __pycache__/
 .ipynb_checkpoints/
 pico-sdk/
 references/
-data/
 
 *.aux
 *.log
@@ -17,3 +16,8 @@ data/
 *.blg
 *.out
 *.toc
+
+*.h5
+*.keras
+
+data/
