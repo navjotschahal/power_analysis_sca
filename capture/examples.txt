@@ -1,0 +1,80 @@
+──────────────────────────────────────────────────────────────────────────────
+USB (scope connected via USBTMC over USB cable)
+──────────────────────────────────────────────────────────────────────────────
+
+python capture.py --board adafruit_trinket_pro_5v16mhz \
+                  --port /dev/tty.usbmodem101 \
+                  --num-traces 50000 \
+                  --baud 115200 \
+                  --serial-delay 0.5 \
+                  --scope-address USB0::0x2A8D::0x17B6::MY65060127::INSTR \
+                  --scope-channel CHANnel1 \
+                  --scope-points 30000 \
+                  --notes "shunt on 5 V using 10 Ohm"
+
+python capture.py --board adafruit_trinket_pro_5v16mhz \
+                  --port /dev/tty.usbmodem101 \
+                  --num-traces 100 \
+                  --baud 115200 \
+                  --serial-delay 0.5 \
+                  --scope-address USB0::0x2A8D::0x17B6::MY65060127::INSTR \
+                  --scope-channel CHANnel1 \
+                  --scope-points 30000 \
+                  --notes "shunt on 5 V using 10 Ohm"
+
+──────────────────────────────────────────────────────────────────────────────
+ETHERNET (scope connected via direct Ethernet cable, link-local 169.254.x.x)
+  Scope IP   : 169.254.161.197   (find on scope: [Utility] → I/O → LAN Settings)
+  Scope host : k-mx4024g-60139
+  Protocols  : hislip (default, fastest), vxi11, socket
+──────────────────────────────────────────────────────────────────────────────
+
+# HiSLIP — recommended, fastest
+python capture.py --board adafruit_trinket_pro_5v16mhz \
+                  --port /dev/tty.usbmodem101 \
+                  --num-traces 50000 \
+                  --baud 115200 \
+                  --serial-delay 0.5 \
+                  --scope-ip 169.254.161.197 \
+                  --scope-channel CHANnel1 \
+                  --scope-points 30000 \
+                  --notes "shunt on 5 V using 10 Ohm, ethernet/hislip"
+
+# VXI-11 — fallback if HiSLIP fails (matches scope's self-reported VISA address)
+python capture.py --board adafruit_trinket_pro_5v16mhz \
+                  --port /dev/tty.usbmodem101 \
+                  --num-traces 50000 \
+                  --baud 115200 \
+                  --serial-delay 0.5 \
+                  --scope-ip 169.254.161.197 \
+                  --scope-protocol vxi11 \
+                  --scope-channel CHANnel1 \
+                  --scope-points 30000 \
+                  --notes "shunt on 5 V using 10 Ohm, ethernet/vxi11"
+
+# Quick test run (100 traces, no plot)
+python capture.py --board adafruit_trinket_pro_5v16mhz \
+                  --port /dev/tty.usbmodem101 \
+                  --num-traces 100 \
+                  --scope-ip 169.254.161.197 \
+                  --scope-points 30000 \
+                  --no-plot
+
+──────────────────────────────────────────────────────────────────────────────
+ARGUMENTS
+──────────────────────────────────────────────────────────────────────────────
+
+  --board           Short label for the board (required). Used in dir name and meta.json.
+  --port            Serial port (required). e.g. /dev/tty.usbmodem101
+  --num-traces      Number of traces to capture. Default: 2000
+  --out-dir         Output directory. Auto-generated as data/set_NNN_<board> if omitted.
+  --baud            UART baud rate. Default: 115200
+  --serial-delay    Seconds to wait after opening serial (use 2.0 for UNO R4). Default: 0.5
+  --scope-address   PyVISA resource string (USB). Default: USB0::0x2A8D::0x17B6::MY65060127::INSTR
+  --scope-ip        Scope IP for Ethernet. Builds TCPIP VISA address. Overrides --scope-address.
+  --scope-protocol  Ethernet protocol: hislip (default), vxi11, socket.
+  --scope-channel   Oscilloscope channel for power trace. Default: CHANnel1
+  --scope-points    Waveform points downloaded per trace. Default: 5000
+  --notes           Free-text capture notes written into meta.json.
+  --precompute-images  Run GASF/GADF/RP/MTF image encoding after saving (creates images_S64.h5).
+  --no-plot         Skip overview plot generation after capture.

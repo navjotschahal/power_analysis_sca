@@ -1,0 +1,4 @@
+cd /Users/navjotsinghchahal/Desktop/work/hw_security/project/power_analysis_sca/firmwares/adafruit_pro_trinket_5v15mhz/bare_metal && make flash
+
+/Users/navjotsinghchahal/Library/Arduino15/packages/arduino/tools/avrdude/8.0.0-arduino1/bin/avrdude -C /Users/navjotsinghchahal/Library/Arduino15/packages/arduino/tools/avrdude/8.0.0-arduino1/etc/avrdude.conf -c usbtiny -p atmega328p \
+            -U flash:w:aes_target.hex:i

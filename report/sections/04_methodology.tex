@@ -1,0 +1,157 @@
+\section{Methodology and Implementation}
+\label{sec:method}
+
+\subsection{Target Firmware}
+\label{sec:method:fw}
+
+Custom firmware was written in C using the Raspberry Pi Pico SDK.
+The firmware waits for 16 bytes of plaintext over USB serial
+(\texttt{stdio\_usb}, 115200 baud), performs AES-128 ECB encryption via
+\texttt{tiny-AES-c}~\cite{tinyaes}, and returns 16 bytes of ciphertext.
+A hardware trigger is produced on GPIO\,22:
+
+\begin{lstlisting}[language=C, caption={Trigger and encryption loop in firmware/main.c}]
+gpio_put(TRIGGER_PIN, 1);    // Trigger HIGH
+AES_ECB_encrypt(&ctx, plaintext);
+gpio_put(TRIGGER_PIN, 0);    // Trigger LOW
+\end{lstlisting}
+
+The hardcoded 128-bit key used for profiling is:
+\texttt{00 11 22 33 44 55 66 77 88 99 AA BB CC DD EE FF}.
+The firmware is compiled with the Pico SDK CMake toolchain and flashed via
+USB mass storage (UF2 format).
+
+\subsection{Data Acquisition}
+\label{sec:method:acq}
+
+The host-side acquisition script (\texttt{capture.py}) coordinates the
+oscilloscope and the Pico over USB serial.
+Oscilloscope control uses the \texttt{pyvisa} library with a PyVISA-py
+backend (USBTMC transport), allowing vendor-independent SCPI communication.
+
+\begin{enumerate}
+  \item The scope is configured for binary waveform transfer
+        (\texttt{:WAVeform:FORMat BYTE}, 5000 points per acquisition).
+  \item For each trace: the scope is armed (\texttt{:SINGle}), a random
+        16-byte plaintext is generated with \texttt{os.urandom(16)}, and
+        sent to the Pico over serial.
+  \item The rising edge of GPIO\,22 triggers the scope.
+  \item After the Pico returns the ciphertext, \texttt{*OPC?} synchronises
+        with the scope, and the waveform is downloaded.
+  \item Failed acquisitions (serial drop, scope timeout) are retried
+        automatically.
+\end{enumerate}
+
+Captured data is saved as:
+\texttt{traces.npy} $(N \times T)$~float32,
+\texttt{plaintexts.npy} $(N \times 16)$~uint8,
+\texttt{ciphertexts.npy} $(N \times 16)$~uint8.
+
+Figure~\ref{fig:raw_traces} shows five representative captured power traces
+aligned on the trigger edge, visualising the AES computation window.
+
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=\linewidth]{figures/captured_traces_top_5.png}
+  \caption{Five representative power traces captured from the RP2040 during
+           AES-128 encryption. The trigger is at sample 0. Trace variation
+           across encryptions carries the data-dependent signal that CPA and
+           DPA exploit.}
+  \label{fig:raw_traces}
+\end{figure}
+
+\subsection{Reference Dataset}
+\label{sec:method:ref}
+
+Because real oscilloscope traces require physical hardware, the primary
+analysis in this report uses the publicly available \textbf{dpa-on-aes}
+reference dataset~\cite{oflynn2015chipwhisperer}, which contains:
+
+\begin{itemize}
+  \item $N = 2{,}000$ AES-128 ECB encryptions.
+  \item $T = 29{,}000$ samples per trace.
+  \item Leakage type: last-round (SubBytes$_{10}$ on ciphertext via
+        $S^{-1}(c_b \oplus k_{10,b})$).
+  \item Known key: \texttt{2B 7E 15 16 28 AE D2 A6 AB F7 15 88 09 CF 4F 3C}.
+\end{itemize}
+
+The dataset was originally distributed as per-trace text files;
+we converted it to the project's \texttt{.npy} format
+(see \texttt{data/DATA\_FORMAT.md} and Appendix~\ref{app:repo}).
+
+\subsection{Attack Algorithms}
+\label{sec:method:attack}
+
+Both attacks target the \textbf{last round} of AES using ciphertexts.
+After recovering the 16-byte round-10 key, the original key is recovered via
+backward key schedule.
+
+\subsubsection{Correlation Power Analysis (CPA)}
+
+CPA uses the Pearson correlation coefficient between the hypothetical power
+consumption vector $\mathbf{h}_j$ and each column $\mathbf{t}_i$ of the trace
+matrix.
+Following the proposal notation~\cite{brier2004cpa}:
+
+\begin{equation}
+  r_{i,j} = \frac{\displaystyle\sum_{d=1}^{D}
+    \bigl(t_{d,i} - \bar{t}_i\bigr)\bigl(h_{d,j} - \bar{h}_j\bigr)}
+  {\sqrt{\displaystyle\sum_{d=1}^{D}\bigl(t_{d,i}-\bar{t}_i\bigr)^2
+         \cdot \sum_{d=1}^{D}\bigl(h_{d,j}-\bar{h}_j\bigr)^2}}
+  \label{eq:cpa}
+\end{equation}
+
+where:
+\begin{align*}
+  d \in [1,D]   &\quad \text{trace index (}D\text{ total traces)}, \\
+  i             &\quad \text{time-sample index}, \\
+  j \in [0,255] &\quad \text{key-byte hypothesis}, \\
+  t_{d,i}       &\quad \text{measured power at sample }i\text{ in trace }d, \\
+  h_{d,j}       &= \mathrm{HW}\!\bigl(S^{-1}(c_{d,b} \oplus j) \oplus c\bigr),
+                    \quad c \in \{0,\ldots,255\}\text{ (leakage constant)}.
+\end{align*}
+
+The predicted key byte for position $b$ is
+$\hat{k}_b = \arg\max_j \max_i |r_{i,j}|$.
+The leakage constant $c$ is swept from 0 to 255; the first value that
+recovers a key that verifies under the backward key schedule is used.
+
+\subsubsection{Differential Power Analysis (DPA)}
+
+DPA partitions traces into two sets based on a predicted bit of the
+intermediate value and measures the differential mean:
+
+\begin{equation}
+  \Delta_j = \max_i \left|
+    \underbrace{\frac{1}{|S_1|}\sum_{d \in S_1} t_{d,i}}_{\text{bit}=1}
+    -
+    \underbrace{\frac{1}{|S_0|}\sum_{d \in S_0} t_{d,i}}_{\text{bit}=0}
+  \right|
+  \label{eq:dpa}
+\end{equation}
+
+where $S_1 = \{d : \mathrm{bit}_\ell(v_{d,j}) = 1\}$ and
+$S_0 = \{d : \mathrm{bit}_\ell(v_{d,j}) = 0\}$ for the $\ell$-th bit of
+$v_{d,j} = S^{-1}(c_{d,b} \oplus j)$.
+The bit position $\ell$ is swept from 0 to 7; the first $\ell$ that produces
+a verifiable key is used.
+
+\subsection{Evaluation Metrics}
+\label{sec:method:metrics}
+
+\paragraph{Guessing Entropy (GE).}
+The primary metric, following~\cite{benadjila2020ascad}:
+\begin{equation}
+  \mathrm{GE}(N) = \mathbb{E}\bigl[\mathrm{rank}(\hat{k}_b^{(N)})\bigr]
+  \label{eq:ge}
+\end{equation}
+where $\mathrm{rank}(\hat{k}_b^{(N)})$ is the position of the correct key
+byte in the list of 256 hypotheses sorted by descending score, after
+processing $N$ traces.
+$\mathrm{GE}$ is estimated by averaging over multiple random subsets of
+size $N$ drawn from the full trace set.
+A value of $\mathrm{GE} = 1$ indicates full convergence.
+
+\paragraph{Trace Complexity ($N_\text{traces}$).}
+The minimum $N$ at which $\mathrm{GE}(N) \leq 1.5$, used as a proxy for
+the number of traces an adversary needs to mount a practical attack.

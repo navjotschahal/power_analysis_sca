@@ -1,0 +1,56 @@
+\section{Threat Model and System Application}
+\label{sec:threat}
+
+\subsection{System Application}
+
+The target system is a \textbf{Raspberry Pi Pico} (RP2040, dual-core ARM
+Cortex-M0+ at 125\,MHz) executing AES-128 in ECB mode using the
+\texttt{tiny-AES-c} library~\cite{tinyaes}.
+The device receives 16-byte plaintexts over USB serial, encrypts them, and
+returns the ciphertext.
+A dedicated GPIO pin (GPIO\,22) is asserted high immediately before
+\texttt{AES\_ECB\_encrypt} and low immediately after, providing a hardware
+trigger signal to a bench oscilloscope.
+
+\subsection{Adversary Threat Model}
+
+We assume a \textbf{local, non-invasive adversary} with the following
+capabilities and constraints:
+
+\begin{description}
+  \item[Physical access.] The adversary has stable, uninterrupted physical
+    access to the target device and can position a power or EM probe over the
+    device's power supply rail or decoupling capacitors for the duration of the
+    experiment.
+
+  \item[Chosen-plaintext oracle.] The adversary can supply arbitrary
+    plaintexts to the device and observe the corresponding ciphertexts.
+    This models a scenario where the attacker controls the input (e.g., an
+    attacker-controlled message encrypted under a device's stored key).
+
+  \item[Algorithm knowledge.] The adversary knows the cryptographic algorithm
+    (AES-128 ECB) and its implementation (standard S-Box, key schedule).
+    The \emph{secret key} is unknown.
+
+  \item[Measurement capability.] The adversary can record power traces at
+    sufficient sample rate and resolution.
+    In the physical setup, a digital storage oscilloscope samples at
+    $\geq$\,250\,MS/s over the trigger window.
+\end{description}
+
+\subsection{What the Adversary Does Not Have}
+
+\begin{itemize}
+  \item No access to the firmware binary (grey-box model assumed for analysis
+        purposes; the S-Box structure is public knowledge for AES).
+  \item No ability to modify the firmware or introduce hardware faults
+        (fault injection is out of scope).
+  \item No network or software access to the device; all interaction is
+        through the physical serial interface.
+\end{itemize}
+
+\subsection{Success Criterion}
+
+A successful attack recovers the full 128-bit secret key with Guessing
+Entropy $\text{GE} = 1$ for all 16 key bytes; that is, the correct key byte
+ranks first among all 256 hypotheses after processing $N$ traces.

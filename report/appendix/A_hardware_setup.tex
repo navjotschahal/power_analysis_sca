@@ -1,0 +1,56 @@
+\section{Hardware Setup and Oscilloscope Capture}
+\label{app:hw}
+
+\subsection{Physical Setup}
+
+\begin{itemize}
+  \item \textbf{Target:} Raspberry Pi Pico (RP2040, ARM Cortex-M0+, 125\,MHz).
+  \item \textbf{Probe:} Current-sense shunt resistor (1\,$\Omega$) placed
+        in series with the RP2040 VDD supply rail; differential voltage
+        across the shunt measured by the oscilloscope.
+        Alternatively, a passive 10:1 scope probe on the shunt.
+  \item \textbf{Oscilloscope:} Keysight/Agilent oscilloscope,
+        controlled via USBTMC (pyvisa).
+        Trigger channel connected to GPIO\,22 on the Pico.
+        Sample rate $\geq$\,250\,MS/s; 5{,}000 points captured per trigger.
+  \item \textbf{Host:} MacBook running Python 3.12 with \texttt{pyvisa},
+        \texttt{pyvisa-py}, \texttt{pyserial}, and \texttt{numpy}.
+\end{itemize}
+
+\textbf{Critical wiring note:}
+GPIO\,22 must be physically connected to the oscilloscope's external trigger
+input (BNC connector on the back panel).
+The power probe must be placed across the decoupling capacitor nearest to the
+RP2040's DVDD pin, or in series with the VDD supply line.
+
+\subsection{Capture Procedure}
+
+\begin{enumerate}
+  \item Flash \texttt{firmware/firmware.uf2} to the Pico (hold BOOTSEL,
+        connect USB, drag-and-drop).
+  \item Connect the trigger wire from GPIO\,22 to the scope trigger input.
+  \item Position the power probe.
+  \item Update \texttt{PICO\_PORT} and \texttt{SCOPE\_ADDRESS} in
+        \texttt{capture.py}.
+  \item Run \texttt{python capture.py}.
+        Output: \texttt{data/set\_001\_pico\_real/\{traces,plaintexts,ciphertexts\}.npy}.
+\end{enumerate}
+
+\subsection{Video Evidence}
+
+Video recordings of the oscilloscope capture session are available in the
+project submission package.
+The videos show:
+
+\begin{itemize}
+  \item The oscilloscope trigger firing on the GPIO\,22 rising edge.
+  \item The power trace waveform during AES-128 encryption.
+  \item The Python acquisition script running in the terminal.
+  \item Representative captured traces in the scope display.
+\end{itemize}
+
+\noindent
+Videos are stored locally and referenced in the project repository at:\\
+\href{https://github.com/PLACEHOLDER/power-analysis-sca}%
+     {\texttt{github.com/PLACEHOLDER/power-analysis-sca}}
+(see \texttt{README.md > Hardware Setup > Video Demos}).

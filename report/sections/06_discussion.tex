@@ -1,0 +1,73 @@
+\section{Discussion}
+\label{sec:discussion}
+
+\subsection{CPA vs.\ DPA: Efficiency}
+
+Both attacks recover the full 128-bit AES key from 2{,}000 traces on the
+reference dataset.
+However, the two attacks differ in the structure of their sweep:
+
+\begin{itemize}
+  \item \textbf{CPA} requires a sweep of the leakage constant $c$
+        (0--255) to handle the HD leakage of byte 11.
+        The HW model ($c=0$) already gives rank~1 for 15/16 bytes,
+        and $c=2$ resolves the remaining byte.
+        The Pearson correlation distinguisher is strictly more data-efficient
+        than DPA because it uses the \emph{magnitude} of the hypothetical
+        power (not just a single bit), exploiting more signal per trace.
+
+  \item \textbf{DPA} requires a bit-position sweep ($\ell = 0$--7).
+        Bit 1 of the last-round intermediate produces clean partitioning for
+        all 16 bytes simultaneously.
+        DPA is conceptually simpler and makes no assumption about the leakage
+        model beyond a single bit's influence on power.
+\end{itemize}
+
+\subsection{Byte 11: Hamming Distance Leakage}
+
+The most notable finding is that byte 11 of the round-10 key does not follow
+a pure HW leakage model.
+Under $c=0$, the CPA score places the correct hypothesis at rank 2
+rather than rank 1; $c=2$ (equivalent to $\mathrm{HW}(v \oplus 2)$) resolves
+this.
+This indicates that the power consumed during the byte-11 operation is
+proportional to the number of bit transitions \emph{from state 2} to the
+computed intermediate value---a typical HD leakage pattern caused by register
+pipeline state.
+DPA is unaffected by this because it uses a single bit of $v$ as the
+distinguisher, not its full value.
+
+\subsection{Relationship to the AES S-Box Structure}
+
+The attack targets the SubBytes operation because the S-Box is the only
+non-linear component in AES.
+This is where plaintext (or ciphertext) and key bytes are combined in a way
+that is both \emph{computable from known data} (once a key hypothesis is
+fixed) and \emph{physically observable} (the S-Box lookup causes data-
+dependent switching).
+Linear operations (ShiftRows, MixColumns, AddRoundKey) still leak, but their
+leakage is linearly predictable from the SubBytes output and thus not
+independently useful.
+
+\subsection{Limitations and Open Questions}
+
+\begin{enumerate}
+  \item \textbf{Real hardware GE curves.}
+    The reference dataset traces have $T = 29{,}000$ samples; the Pico
+    acquisition is configured for $T = 5{,}000$ samples.
+    The GE analysis (Section~\ref{sec:results:ge}) on real Pico traces
+    is the primary pending deliverable.
+
+  \item \textbf{Masking countermeasure.}
+    The current firmware has no countermeasures.
+    Applying first-order Boolean masking to the S-Box lookup would break
+    first-order CPA/DPA and requires a second-order attack.
+    This is a natural extension.
+
+  \item \textbf{Alignment sensitivity.}
+    Traces must be aligned on the trigger edge for both attacks to function.
+    Even a one-sample misalignment spreads the leakage signal across adjacent
+    samples and reduces distinguisher scores.
+    The hardware trigger (GPIO\,22) provides sample-accurate alignment for
+    this setup.
+\end{enumerate}

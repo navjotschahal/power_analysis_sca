@@ -1,0 +1,107 @@
+\documentclass[11pt]{article}
+
+% ── Packages ──────────────────────────────────────────────────────────────────
+\usepackage[margin=1in]{geometry}
+\usepackage{amsmath, amssymb}
+\usepackage{graphicx}
+\usepackage{subcaption}
+\usepackage{booktabs}
+\usepackage{hyperref}
+\usepackage{xcolor}
+\usepackage{listings}
+\usepackage{float}
+\usepackage{cite}
+\usepackage{microtype}
+\usepackage{parskip}
+\usepackage{titlesec}
+\usepackage{fancyhdr}
+\usepackage{abstract}
+
+% ── Hyperref colours ──────────────────────────────────────────────────────────
+\hypersetup{
+  colorlinks = true,
+  linkcolor  = blue!60!black,
+  citecolor  = green!50!black,
+  urlcolor   = blue!60!black
+}
+
+% ── Code listings style ───────────────────────────────────────────────────────
+\lstset{
+  basicstyle   = \ttfamily\small,
+  keywordstyle = \color{blue},
+  commentstyle = \color{gray},
+  frame        = single,
+  breaklines   = true,
+  numbers      = left,
+  numberstyle  = \tiny\color{gray}
+}
+
+% ── Header / footer ───────────────────────────────────────────────────────────
+\pagestyle{fancy}
+\fancyhf{}
+\lhead{\small ESE5370 Spring 2026 --- Hardware Security Project}
+\rhead{\small Navjot Singh Chahal}
+\cfoot{\thepage}
+\renewcommand{\headrulewidth}{0.4pt}
+
+% ── Title ─────────────────────────────────────────────────────────────────────
+\title{
+  \textbf{Evaluating the Efficacy and Limitations of Statistical \\
+  Power Side-Channel Attacks on AES-128} \\[4pt]
+  \large A Comparative Study of DPA and CPA \\
+  on an RP2040 Microcontroller
+}
+\author{
+  Navjot Singh Chahal \\
+  \texttt{nschahal@seas.upenn.edu} \\[4pt]
+  Department of Electrical and Systems Engineering \\
+  University of Pennsylvania
+}
+\date{April 2026}
+
+% ─────────────────────────────────────────────────────────────────────────────
+\begin{document}
+\maketitle
+\thispagestyle{fancy}
+
+% ── Abstract ──────────────────────────────────────────────────────────────────
+\begin{abstract}
+This project performs a quantitative comparative analysis of two classical
+power side-channel attacks---Differential Power Analysis (DPA) and Correlation
+Power Analysis (CPA)---targeting AES-128 executed on a Raspberry Pi Pico
+(RP2040, ARM Cortex-M0+).
+We implement a full attack pipeline: custom firmware with a hardware trigger,
+a pyvisa-based oscilloscope acquisition system, and fully vectorised Python
+attack scripts operating on \texttt{.npy} trace datasets.
+Both attacks are evaluated on a publicly available reference dataset
+(2{,}000 traces, 29{,}000 samples each) using last-round key recovery
+followed by a backward key schedule.
+CPA recovers all 16 round-10 key bytes with rank 1 using a Hamming-Weight
+(HW) leakage model; one byte requires a Hamming-Distance (HD) variant
+(\texttt{const}=2), matching prior literature.
+DPA recovers the full key at bit position 1 of the target intermediate.
+Both results are interpreted through the Guessing Entropy (GE) metric.
+\end{abstract}
+
+\tableofcontents
+\newpage
+
+% ── Sections ──────────────────────────────────────────────────────────────────
+\input{sections/01_introduction}
+\input{sections/02_threat_model}
+\input{sections/03_vulnerability}
+\input{sections/04_methodology}
+\input{sections/05_results}
+\input{sections/06_discussion}
+\input{sections/07_conclusion}
+
+% ── References ────────────────────────────────────────────────────────────────
+\bibliographystyle{ieeetr}
+\bibliography{references}
+
+% ── Appendices ────────────────────────────────────────────────────────────────
+\appendix
+\input{appendix/A_hardware_setup}
+\input{appendix/B_repository}
+
+\end{document}

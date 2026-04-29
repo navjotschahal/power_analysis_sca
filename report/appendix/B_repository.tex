@@ -1,0 +1,80 @@
+\section{Software Repository}
+\label{app:repo}
+
+The full source code, datasets, and documentation are available at:
+
+\begin{center}
+  \url{https://github.com/PLACEHOLDER/power-analysis-sca}
+\end{center}
+
+\subsection{Repository Structure}
+
+\begin{verbatim}
+power_analysis_sca/
+  README.md               Top-level guide (links all sections below)
+  firmware/
+    main.c                RP2040 AES firmware with GPIO trigger
+    CMakeLists.txt        Pico SDK CMake build
+  capture.py              pyvisa + pyserial acquisition script
+  data/
+    DATA_FORMAT.md        Schema: shapes, dtypes, row alignment
+    set_001_pico_real/    Real oscilloscope traces (post-capture)
+      meta.json           Key, device, T=5000
+    set_002_reference/    Reference dpa-on-aes dataset (converted)
+      traces.npy          (2000, 29000) float32
+      plaintexts.npy      (2000, 16)    uint8
+      ciphertexts.npy     (2000, 16)    uint8
+      meta.json           Key, attack_round=last, T=29000
+      plots/              Generated diagnostic plots
+  attacks/
+    helper.py             Shared AES tables, key schedule, utilities
+    cpa.py                CPA: Pearson correlation, const sweep
+    dpa.py                DPA: differential mean, bit sweep
+    guessing_entropy.py   GE(N) curves, DPA vs CPA comparison
+  references/
+    dpa-on-aes/           Cloned reference notebook (original .txt)
+  report/                 This LaTeX report
+    main.tex
+    references.bib
+    sections/             One .tex per section
+    appendix/             One .tex per appendix
+\end{verbatim}
+
+\subsection{Reproducing All Results}
+
+\begin{enumerate}
+  \item \textbf{Build firmware}
+\begin{verbatim}
+export PICO_SDK_PATH=/path/to/pico-sdk
+cd firmware && mkdir build && cd build
+cmake .. && make -j4
+# Flash firmware.uf2 via USB mass storage
+\end{verbatim}
+
+  \item \textbf{Capture real traces} (requires Pico + oscilloscope)
+\begin{verbatim}
+python capture.py
+# Output: data/set_001_pico_real/{traces,plaintexts,ciphertexts}.npy
+\end{verbatim}
+
+  \item \textbf{Run CPA on reference dataset}
+\begin{verbatim}
+python attacks/cpa.py --data data/set_002_reference --round last
+\end{verbatim}
+
+  \item \textbf{Run DPA on reference dataset}
+\begin{verbatim}
+python attacks/dpa.py --data data/set_002_reference --round last
+\end{verbatim}
+
+  \item \textbf{Generate Guessing Entropy plot}
+\begin{verbatim}
+python attacks/guessing_entropy.py \
+  --data data/set_002_reference --byte 0 --trials 20
+\end{verbatim}
+\end{enumerate}
+
+\noindent
+All scripts read dataset path, attack parameters, and known key from
+\texttt{meta.json}; no hardcoded paths.
+Generated plots are saved to \texttt{data/<set>/plots/}.

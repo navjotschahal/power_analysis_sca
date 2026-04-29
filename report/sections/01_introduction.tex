@@ -1,0 +1,51 @@
+\section{Introduction and Goal}
+\label{sec:intro}
+
+Cryptographic algorithms such as AES-128~\cite{nist2001aes} are mathematically
+secure under standard threat models; no practical algebraic attacks are known
+against the full cipher.
+However, physical implementations of these algorithms routinely leak sensitive
+information through observable side channels---most notably through their power
+consumption.
+Kocher et al.\ demonstrated in 1999~\cite{kocher1999dpa} that an adversary with
+physical access to a device can statistically extract a secret key by observing
+the power trace of many encryptions; this technique, Differential Power
+Analysis (DPA), exploits the fact that CMOS logic gates consume power
+proportional to the data they process.
+
+Correlation Power Analysis (CPA), introduced by Brier et al.\ in
+2004~\cite{brier2004cpa}, formalises this observation using a Pearson
+correlation distinguisher and an explicit leakage model (typically Hamming
+Weight of an intermediate value), achieving significantly better efficiency
+than DPA in terms of trace complexity.
+
+\subsection*{Project Goal}
+
+The goal of this project is to perform a \emph{quantitative comparative
+analysis} of DPA and CPA on a real embedded target---the Raspberry Pi Pico
+RP2040 microcontroller~\cite{rp2040datasheet}---running unprotected AES-128.
+Specifically, the project targets the following measurements:
+
+\begin{itemize}
+  \item \textbf{Key recovery success}: Does each attack recover the full
+        128-bit key from the reference trace set?
+  \item \textbf{Rank of the correct hypothesis}: What is the rank of the
+        correct key byte across all 256 candidates as a function of the
+        number of traces used?
+  \item \textbf{Leakage model sensitivity}: Does the HW model suffice, or
+        do certain bytes require a Hamming-Distance (HD) variant?
+  \item \textbf{Trace complexity} ($N_\text{traces}$): How many traces are
+        needed before each attack converges (Guessing Entropy reaches 1)?
+\end{itemize}
+
+\subsection*{Report Structure}
+
+Section~\ref{sec:threat} defines the threat model and system application.
+Section~\ref{sec:vuln} analyses the vulnerability and countermeasure context.
+Section~\ref{sec:method} describes the implementation---firmware, acquisition
+pipeline, and attack algorithms.
+Section~\ref{sec:results} presents experimental results with diagnostic plots.
+Section~\ref{sec:discussion} compares DPA and CPA and discusses limitations.
+Section~\ref{sec:conclusion} concludes and outlines future work.
+Hardware setup details and video evidence are in Appendix~\ref{app:hw};
+the software repository structure is in Appendix~\ref{app:repo}.

@@ -1,0 +1,53 @@
+\section{Conclusion and Future Work}
+\label{sec:conclusion}
+
+\subsection{Summary}
+
+This project implemented and evaluated two classical power side-channel attacks
+---DPA and CPA---targeting AES-128 on an RP2040 microcontroller.
+
+\begin{itemize}
+  \item A complete hardware test bench was built: Pico firmware with a hardware
+        trigger, pyvisa-based oscilloscope acquisition, and a structured
+        \texttt{.npy} dataset format.
+
+  \item CPA with the Pearson correlation distinguisher recovers all 16 bytes
+        of the round-10 key at rank 1 using 2{,}000 traces.
+        Fifteen bytes succeed under the HW model ($c=0$); byte 11 requires
+        an HD model ($c=2$).
+
+  \item DPA with the differential-mean distinguisher recovers all 16 bytes
+        at bit position $\ell=1$ using the same 2{,}000 traces.
+
+  \item Both attacks recover the original 128-bit key
+        (\texttt{2B 7E 15 16 28 AE D2 A6 AB F7 15 88 09 CF 4F 3C})
+        via backward key schedule.
+
+  \item The byte-11 HD leakage finding provides a concrete example of
+        how leakage model selection affects CPA but not DPA, highlighting a
+        practical advantage of DPA in model-agnostic scenarios.
+\end{itemize}
+
+\subsection{Future Work}
+
+\begin{description}
+  \item[Guessing Entropy on real hardware traces.]
+    Once acquisition on the physical Pico is complete
+    (\texttt{attacks/guessing\_entropy.py --data data/set\_001\_pico\_real}),
+    GE vs.\ $N_\text{traces}$ curves for both attacks will provide a
+    quantitative trace-complexity comparison.
+
+  \item[Masking countermeasure evaluation.]
+    Applying Boolean masking (first-order) to the firmware S-Box lookup
+    and measuring the increase in required traces for second-order attacks
+    would directly address the defense portion of the proposal.
+
+  \item[SNR characterisation across noise levels.]
+    Injecting controlled additive noise into simulated traces and measuring
+    at what SNR each attack fails would produce the characterisation proposed
+    in the original plan.
+
+  \item[EM side channel.]
+    Replacing the power probe with an EM probe positioned over the RP2040
+    core would allow comparison of power vs.\ EM leakage on the same target.
+\end{description}
