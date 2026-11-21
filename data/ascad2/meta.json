@@ -1,0 +1,12 @@
+{
+  "label": "ASCAD2 — ANSSI SecAES-STM32 second-order masked AES-128",
+  "source": "https://github.com/ANSSI-FR/ASCAD",
+  "format": "HDF5 (ascadv2-extracted.h5)",
+  "N_profiling": 500000,
+  "N_attack": 10000,
+  "T": 15000,
+  "device": "STM32 ARM Cortex-M4 @ 4MHz (ChipWhisperer)",
+  "protection": "second-order masking (alpha*x+beta) + shuffling",
+  "attack_round": "first",
+  "notes": "Use ascad2_sca.py — 34-head ResNetSCA. Read with h5py, not load_dataset()."
+}

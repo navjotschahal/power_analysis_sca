@@ -1,0 +1,27 @@
+{
+  "label": "Adafruit Pro Trinket 16MHz (ATmega328P) \u2014 Arduino sketch",
+  "key": [
+    43,
+    126,
+    21,
+    22,
+    40,
+    174,
+    210,
+    166,
+    171,
+    247,
+    21,
+    136,
+    9,
+    207,
+    79,
+    60
+  ],
+  "device": "Adafruit Pro Trinket 16MHz ATmega328P",
+  "N": 2000,
+  "T": 4807,
+  "snr": null,
+  "noise_level": null,
+  "notes": "Captured via capture_uno.py; shunt on GND rail; trigger wraps full AES"
+}

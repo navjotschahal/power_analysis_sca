@@ -1,0 +1,29 @@
+{
+  "label": "RPi Pico RP2040 \u2014 shunt GND, 2000 capture run (100 traces)",
+  "key": [
+    43,
+    126,
+    21,
+    22,
+    40,
+    174,
+    210,
+    166,
+    171,
+    247,
+    21,
+    136,
+    9,
+    207,
+    79,
+    60
+  ],
+  "key_hex": "2b7e151628aed2a6abf7158809cf4f3c",
+  "device": "Raspberry Pi Pico RP2040 @ 125 MHz",
+  "N": 100,
+  "T": 4000,
+  "snr": null,
+  "noise_level": null,
+  "attack_round": "first",
+  "notes": "Captured via capture.py with shunt on GND rail. Oscilloscope trigger on GPIO 15 rising edge. Traces stored as uint8 ADC counts converted to float32."
+}

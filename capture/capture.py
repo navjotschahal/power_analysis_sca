@@ -30,7 +30,7 @@ Oscilloscope connection
 
 Examples
 ────────
-  # Adafruit Pro Trinket via USB scope
+  # Adafruit Pro Tinkrer via USB scope
   python capture.py --board trinket_5v --port /dev/tty.usbserial-0001
 
   # Raspberry Pi Pico, scope over Ethernet (HiSLIP)

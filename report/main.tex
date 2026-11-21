@@ -48,8 +48,8 @@
 \title{
   \textbf{Evaluating the Efficacy and Limitations of Statistical \\
   Power Side-Channel Attacks on AES-128} \\[4pt]
-  \large A Comparative Study of DPA and CPA \\
-  on an RP2040 Microcontroller
+  \large A Comparative Study of DPA, CPA, and Image-Based Deep Learning \\
+  Across Multiple Embedded Targets
 }
 \author{
   Navjot Singh Chahal \\
@@ -68,19 +68,36 @@
 \begin{abstract}
 This project performs a quantitative comparative analysis of two classical
 power side-channel attacks---Differential Power Analysis (DPA) and Correlation
-Power Analysis (CPA)---targeting AES-128 executed on a Raspberry Pi Pico
-(RP2040, ARM Cortex-M0+).
-We implement a full attack pipeline: custom firmware with a hardware trigger,
-a pyvisa-based oscilloscope acquisition system, and fully vectorised Python
-attack scripts operating on \texttt{.npy} trace datasets.
-Both attacks are evaluated on a publicly available reference dataset
-(2{,}000 traces, 29{,}000 samples each) using last-round key recovery
-followed by a backward key schedule.
-CPA recovers all 16 round-10 key bytes with rank 1 using a Hamming-Weight
-(HW) leakage model; one byte requires a Hamming-Distance (HD) variant
-(\texttt{const}=2), matching prior literature.
-DPA recovers the full key at bit position 1 of the target intermediate.
-Both results are interpreted through the Guessing Entropy (GE) metric.
+Power Analysis (CPA)---and a deep learning extension, targeting AES-128 on
+real embedded hardware and a public reference trace set.
+
+Three physical targets were evaluated:\ the Raspberry Pi Pico (RP2040)
+failed due to on-chip SMPS switching noise; the Arduino Uno R4 Minima
+(RA4M1) failed from insufficient trace count and noisy supply regulation;
+the \textbf{Adafruit Pro Tinkrer 5\,V} (ATmega328P, 16\,MHz) succeeded with
+a clean 5\,V linear supply and a 10\,$\Omega$ shunt on the VCC rail.
+Primary quantitative analysis uses the publicly available \textbf{dpa-on-aes}
+reference dataset (2{,}000 traces, 29{,}000 samples) captured with
+ChipWhisperer hardware, which validates our attack implementations.
+
+On the Pro Tinkrer , \textbf{first-round CPA with the pure Hamming-Weight
+model ($c=0$) recovers all 16 key bytes at rank~1 in as few as 200 traces}
+and no more than 2{,}000---no Hamming-Distance variant is needed, and no
+backward key schedule is required.
+This is the headline real-hardware result.
+
+On the reference dataset (last-round), CPA (Brier et al.\ 2004) recovers
+all 16 round-10 key bytes at rank~1; byte~11 requires a Hamming-Distance
+model ($c=2$) due to register pipeline state accumulated across nine rounds.
+DPA (Kocher et al.\ 1999) recovers the full key at bit position $\ell=1$.
+Both attacks recover the original key
+\texttt{2B 7E 15 16 28 AE D2 A6 AB F7 15 88 09 CF 4F 3C} via backward key
+schedule, and are evaluated using the Guessing Entropy (GE) metric.
+
+As a deep learning extension we reproduce the image-encoding CNN of
+Hettwer et al.\ (IEEE HOST 2020): power traces are converted to
+2D images (GASF, GADF, RP, MTF encodings) and fed to a compact Conv2D
+classifier whose convergence is measured by Key Guessing Entropy (KGE).
 \end{abstract}
 
 \tableofcontents

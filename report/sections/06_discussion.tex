@@ -1,41 +1,76 @@
 \section{Discussion}
 \label{sec:discussion}
 
+\subsection{First-Round vs.\ Last-Round: Leakage Quality}
+\label{sec:discussion:roundcomp}
+
+The two datasets expose a fundamental difference between first- and
+last-round attacks that has practical consequences.
+
+\paragraph{Pro Tinkrer , first-round CPA.}
+The pure HW model ($c=0$) is exact for \emph{all 16 bytes}, and the attack
+converges with 200--2{,}000 traces.
+The reason is that the first SubBytes is the first non-linear, key-dependent
+operation executed by the processor.
+Before it runs, no key-dependent value has ever transitioned in any register;
+there is no accumulated HD ``contamination'' from previous states.
+The ATmega328P's non-pipelined 8-bit architecture reinforces this: each
+S-Box table lookup produces an isolated power event whose magnitude tracks
+$\mathrm{HW}(S[p_b \oplus k_b])$ almost exactly.
+At 200 traces the attack requires roughly 3 minutes of physical access
+at a typical 1 trace/second acquisition rate---a striking demonstration
+of the real-world threat.
+
+\paragraph{Reference dataset, last-round CPA.}
+The last-round intermediate $S^{-1}[c_b \oplus k_{10,b}]$ is computed
+after nine full AES rounds of key-dependent computation.
+By that point the processor register file and pipeline carry state from
+prior operations.
+For 15/16 bytes the HW model still holds ($c=0$, rank~1).
+Byte 11 is the exception: $c=2$ is required, meaning the power for that
+operation is proportional to the Hamming distance from register state~2
+to the S-Box output.
+This is a typical HD leakage pattern caused by the previous value in
+the register being written---a pipeline residual from the ninth round.
+DPA is unaffected because it uses only a single \emph{bit} of the
+intermediate as the partitioning criterion, not its full value.
+
 \subsection{CPA vs.\ DPA: Efficiency}
 
-Both attacks recover the full 128-bit AES key from 2{,}000 traces on the
-reference dataset.
-However, the two attacks differ in the structure of their sweep:
+Both attacks recover the full 128-bit AES key from 2{,}000 reference traces.
+The two attacks differ in the structure of their sweep:
 
 \begin{itemize}
-  \item \textbf{CPA} requires a sweep of the leakage constant $c$
-        (0--255) to handle the HD leakage of byte 11.
-        The HW model ($c=0$) already gives rank~1 for 15/16 bytes,
-        and $c=2$ resolves the remaining byte.
-        The Pearson correlation distinguisher is strictly more data-efficient
-        than DPA because it uses the \emph{magnitude} of the hypothetical
-        power (not just a single bit), exploiting more signal per trace.
+  \item \textbf{CPA} requires a sweep of leakage constant $c$ (0--255)
+        to find the model that best matches the device's register state.
+        Once found, the Pearson correlation distinguisher is more
+        data-efficient than DPA because it uses the \emph{magnitude} of
+        the predicted power (not just one bit), extracting more signal
+        per trace.
 
   \item \textbf{DPA} requires a bit-position sweep ($\ell = 0$--7).
-        Bit 1 of the last-round intermediate produces clean partitioning for
-        all 16 bytes simultaneously.
-        DPA is conceptually simpler and makes no assumption about the leakage
-        model beyond a single bit's influence on power.
+        It is conceptually simpler and makes no assumption about the
+        leakage model beyond a single bit's influence on power, which is
+        why it is unaffected by the byte-11 HD anomaly.
 \end{itemize}
 
-\subsection{Byte 11: Hamming Distance Leakage}
+On the Trinket first-round, CPA with $c=0$ outperforms both the reference
+dataset attacks in trace complexity: the same algorithm, the same code,
+the same key---only the target and attack round differ.
+This underscores that trace complexity is dominated by \emph{signal quality}
+(supply cleanliness, leakage model match) rather than algorithm choice.
 
-The most notable finding is that byte 11 of the round-10 key does not follow
-a pure HW leakage model.
-Under $c=0$, the CPA score places the correct hypothesis at rank 2
-rather than rank 1; $c=2$ (equivalent to $\mathrm{HW}(v \oplus 2)$) resolves
-this.
-This indicates that the power consumed during the byte-11 operation is
-proportional to the number of bit transitions \emph{from state 2} to the
-computed intermediate value---a typical HD leakage pattern caused by register
-pipeline state.
-DPA is unaffected by this because it uses a single bit of $v$ as the
-distinguisher, not its full value.
+\subsection{Byte 11: Hamming Distance Leakage (Reference Dataset)}
+
+Under $c=0$, the CPA score for byte~11 places the correct hypothesis at
+rank~2 rather than rank~1; $c=2$ resolves it.
+This indicates the power consumed during that operation is proportional
+to $\mathrm{HW}(v \oplus 2)$, where 2 is the previous register state---a
+HD leakage pattern from pipeline residuals in the last round.
+No such anomaly exists on the Trinket first-round because the register
+state before the first SubBytes is fixed (zero or a known initial value)
+for every trace, making the HD term a constant that does not affect
+correlation.
 
 \subsection{Relationship to the AES S-Box Structure}
 
@@ -49,25 +84,107 @@ Linear operations (ShiftRows, MixColumns, AddRoundKey) still leak, but their
 leakage is linearly predictable from the SubBytes output and thus not
 independently useful.
 
+\subsection{Hardware Platform Limitations}
+\label{sec:discussion:hw}
+
+\paragraph{RP2040 SMPS Interference.}
+The Raspberry Pi Pico's on-chip SMPS is the fundamental obstacle to
+power SCA on that device.
+The buck converter switching noise floor is orders of magnitude larger than
+the $\mu$A-level data-dependent current modulation produced by AES.
+A successful RP2040 attack would require supplying DVDD from an external
+low-noise LDO (bypassing the SMPS entirely), as done with the ChipWhisperer
+CW308 UFO target board for RP2040.
+
+\paragraph{Arduino Uno R4 Minima.}
+The RA4M1 also uses internal DC-DC regulation and its power supply is
+harder to control than the ATmega328P's simple linear path.
+The 2{,}000-trace capture was also below the threshold typically needed
+for first-round attacks on Cortex-M devices.
+Increasing trace count to $>$10{,}000 and probing closer to the RA4M1
+core supply decoupling capacitors would be the next step.
+
+\paragraph{Pro Tinkrer as a Clean Baseline.}
+The ATmega328P's simple 5\,V linear supply (USB $\to$ Schottky diode
+$\to$ VCC pin) makes it an excellent learning platform for power SCA.
+This matches the design philosophy of ChipWhisperer's classic AVR and
+XMEGA target boards.
+The chip's 8-bit architecture and predictable pipeline also produce
+cleaner per-instruction leakage than modern pipelined Cortex-M cores.
+
+\subsection{Deep Learning vs.\ Classical Attacks}
+\label{sec:discussion:dl}
+
+The Hettwer et al.\ paper specifies 50{,}000 training traces and 10{,}000
+validation traces as the minimum for the GASF+GADF CNN to reach functional
+S-Box classification accuracy.
+Our total available capture (\texttt{set\_013}) contains only
+\textbf{10{,}000 traces}, fewer than the paper's validation set alone.
+The model therefore operates in a severely data-limited regime: the training
+curves do not show a well-converged classifier, and the KGE result should
+be read as a lower bound on what the approach can achieve with adequate
+data rather than a fair head-to-head comparison.
+
+Two properties of the image-encoding pipeline explain its competitive
+performance on real oscilloscope captures:
+
+\begin{itemize}
+  \item \textbf{Jitter tolerance.}
+    USB-UART serial latency and scope arm delay introduce trigger jitter
+    that shifts the leakage sample in time.
+    Conv2D with pooling is inherently robust to small translations, whereas
+    fixed-index CPA/DPA correlation degrades monotonically with jitter
+    amplitude.
+    The GASF/GADF encoding converts this temporal shift into a spatial
+    translation in the image, which the pooling layers absorb.
+
+  \item \textbf{Multi-scale feature extraction.}
+    CNN filters at different spatial scales simultaneously exploit narrow
+    S-Box spikes and broader round-level power envelopes.
+    The GASF channel encodes pairwise phase sums (capturing overall
+    correlation structure) while GADF encodes phase differences
+    (capturing directionality); together they give the Conv2D filters
+    richer texture to distinguish HW classes.
+\end{itemize}
+
+The primary cost of the profiling attack model is the training phase: the
+CNN must be trained on a profiling split with known key before attacking
+the victim device.
+Classical CPA and DPA require no training and converge directly from the
+attack traces.
+On clean, well-aligned hardware like the Pro Tinkrer , first-round CPA
+with $c=0$ is both simpler and faster to converge; the DL approach adds
+value in settings with higher jitter or noisier supplies where the
+fixed-point correlation assumption of CPA breaks down.
+
 \subsection{Limitations and Open Questions}
 
 \begin{enumerate}
-  \item \textbf{Real hardware GE curves.}
-    The reference dataset traces have $T = 29{,}000$ samples; the Pico
-    acquisition is configured for $T = 5{,}000$ samples.
-    The GE analysis (Section~\ref{sec:results:ge}) on real Pico traces
-    is the primary pending deliverable.
+  \item \textbf{GE curves.}
+    Figure~\ref{fig:ge} shows DPA requires approximately $10\times$ more
+    traces than CPA to converge on the reference dataset.
+    The Pro Tinkrer first-round CPA (Figure~\ref{fig:trinket_ge}) is even
+    more data-efficient, confirming that signal quality dominates over
+    algorithm choice: the same CPA code on a cleaner supply converges an
+    order of magnitude faster.
+
+  \item \textbf{Deep learning convergence.}
+    The Hettwer CNN experiment (Figure~\ref{fig:dl_kge}) is data-limited:
+    10{,}000 total traces versus the 60{,}000 the paper requires for
+    functional validation accuracy.
+    The KGE curve reflects an under-trained model and cannot be used for
+    a fair trace-complexity comparison against CPA/DPA.
+    Capturing 50{,}000 Pro Tinkrer traces (the planned \texttt{set\_004})
+    is the prerequisite for a meaningful evaluation.
 
   \item \textbf{Masking countermeasure.}
     The current firmware has no countermeasures.
-    Applying first-order Boolean masking to the S-Box lookup would break
-    first-order CPA/DPA and requires a second-order attack.
-    This is a natural extension.
+    First-order Boolean masking would break first-order CPA/DPA and
+    require a second-order attack---a natural extension.
 
   \item \textbf{Alignment sensitivity.}
-    Traces must be aligned on the trigger edge for both attacks to function.
-    Even a one-sample misalignment spreads the leakage signal across adjacent
-    samples and reduces distinguisher scores.
-    The hardware trigger (GPIO\,22) provides sample-accurate alignment for
-    this setup.
+    Both classical attacks require aligned traces.
+    The hardware trigger (GPIO\,8) provides sample-accurate alignment
+    for bench captures; the image-encoding CNN provides additional
+    robustness through spatial translation invariance.
 \end{enumerate}

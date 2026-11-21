@@ -1,0 +1,12 @@
+{
+  "label": "Reference — dpa-on-aes repo (last-round leakage)",
+  "key": [43, 126, 21, 22, 40, 174, 210, 166, 171, 247, 21, 136, 9, 207, 79, 60],
+  "key_hex": "2b7e151628aed2a6abf7158809cf4f3c",
+  "device": "unknown (reference dataset)",
+  "N": 2000,
+  "T": 29000,
+  "snr": null,
+  "noise_level": null,
+  "attack_round": "last",
+  "notes": "Sourced from references/dpa-on-aes. Traces exhibit last-round leakage (INV_SBOX on ciphertext). First-round CPA/DPA may need more traces to converge on this dataset. Converted from per-file .txt → .npy."
+}

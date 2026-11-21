@@ -1,76 +1,130 @@
 \section{Software Repository}
 \label{app:repo}
 
-The full source code, datasets, and documentation are available at:
+The full source code, capture scripts, attack implementations, and
+documentation are available at:
 
 \begin{center}
-  \url{https://github.com/PLACEHOLDER/power-analysis-sca}
+  \url{https://github.com/navjotschahal/power_analysis_sca}
 \end{center}
+
+\subsection*{Project Deliverables}
+
+\begin{description}
+  \item[Project Proposal]
+    The initial project proposal is available in the repository root:\\
+    \href{https://github.com/navjotschahal/power_analysis_sca/blob/main/nschahal_proposal-1.pdf}%
+         {\texttt{nschahal\_proposal-1.pdf}}
+    (see \texttt{README.md} for direct link).
+
+  \item[Project Presentation]
+    The slide deck is linked from the repository README under
+    \emph{Project Deliverables $\to$ Presentation}:\\
+    \url{https://github.com/navjotschahal/power_analysis_sca}
+
+  \item[Experiment Media (Videos \& Photos)]
+    All lab videos (oscilloscope capture session, trigger firing,
+    AES power trace, acquisition script) and circuit bench photographs
+    are linked in the repository README under
+    \emph{Hardware Setup $\to$ Video Demos}:\\
+    \url{https://github.com/navjotschahal/power_analysis_sca}
+
+  \item[Dataset Download]
+    Captured power traces (Pro Tinkrer 5\,V, up to 30{,}000 samples/trace)
+    are hosted on Google Drive (link in README):\\
+    \href{https://drive.google.com/file/d/1Itl82UCQEDyk6cYDD33kB-gKtlXIQBZe/view?usp=sharing}%
+         {Google Drive --- Power Trace Dataset}
+\end{description}
 
 \subsection{Repository Structure}
 
 \begin{verbatim}
 power_analysis_sca/
-  README.md               Top-level guide (links all sections below)
+  README.md
   firmware/
-    main.c                RP2040 AES firmware with GPIO trigger
-    CMakeLists.txt        Pico SDK CMake build
-  capture.py              pyvisa + pyserial acquisition script
+    main.cpp              AES-128 firmware (GPIO trigger, tiny-AES-c)
+    CMakeLists.txt        AVR/Pico SDK CMake build
+  capture/
+    capture.py            Unified pyvisa + pyserial acquisition (all boards)
+    examples.txt          Example capture commands per board
   data/
     DATA_FORMAT.md        Schema: shapes, dtypes, row alignment
-    set_001_pico_real/    Real oscilloscope traces (post-capture)
-      meta.json           Key, device, T=5000
-    set_002_reference/    Reference dpa-on-aes dataset (converted)
+    set_001_pico_real/    RPi Pico traces (100 traces, did not converge)
+    set_002_reference/    ChipWhisperer reference (2000x29000, working)
       traces.npy          (2000, 29000) float32
-      plaintexts.npy      (2000, 16)    uint8
-      ciphertexts.npy     (2000, 16)    uint8
-      meta.json           Key, attack_round=last, T=29000
-      plots/              Generated diagnostic plots
+      plaintexts.npy      (2000, 16)   uint8
+      ciphertexts.npy     (2000, 16)   uint8
+      meta.json           key, attack_round=last, label
+      plots/              Generated diagnostic figures
+    set_003_arduino_shuntGND/  Arduino Uno R4 (2000 traces, did not converge)
+    set_004_trinket_*/    Pro Tinkrer 5V (50k traces planned)
   attacks/
-    helper.py             Shared AES tables, key schedule, utilities
-    cpa.py                CPA: Pearson correlation, const sweep
-    dpa.py                DPA: differential mean, bit sweep
-    guessing_entropy.py   GE(N) curves, DPA vs CPA comparison
+    helper.py             Shared AES tables, key schedule, load_dataset
+    classical/
+      cpa.py              CPA: Pearson correlation, const sweep 0-255
+      dpa.py              DPA: differential mean, bit sweep 0-7
+      guessing_entropy.py GE(N) curves, DPA vs CPA comparison
+    deep_learning/
+      hettwer_sca.py      Hettwer 2020 CNN -- train + KGE evaluation
+      image_encode.py     GASF / GADF / RP / MTF encoders
+      device.py           GPU/CPU device detection helper
   references/
-    dpa-on-aes/           Cloned reference notebook (original .txt)
+    dpa-on-aes/           Cloned reference notebook (original .txt traces)
   report/                 This LaTeX report
     main.tex
     references.bib
     sections/             One .tex per section
     appendix/             One .tex per appendix
+    figures/              PNG figures for includegraphics
 \end{verbatim}
 
 \subsection{Reproducing All Results}
 
 \begin{enumerate}
-  \item \textbf{Build firmware}
-\begin{verbatim}
-export PICO_SDK_PATH=/path/to/pico-sdk
-cd firmware && mkdir build && cd build
-cmake .. && make -j4
-# Flash firmware.uf2 via USB mass storage
-\end{verbatim}
-
-  \item \textbf{Capture real traces} (requires Pico + oscilloscope)
-\begin{verbatim}
-python capture.py
-# Output: data/set_001_pico_real/{traces,plaintexts,ciphertexts}.npy
-\end{verbatim}
-
   \item \textbf{Run CPA on reference dataset}
 \begin{verbatim}
-python attacks/cpa.py --data data/set_002_reference --round last
+python attacks/classical/cpa.py \
+  --data data/set_002_reference --round last
 \end{verbatim}
+  Output: \texttt{data/set\_002\_reference/plots/cpa\_byte00.png}
+  (and one plot per byte).
 
   \item \textbf{Run DPA on reference dataset}
 \begin{verbatim}
-python attacks/dpa.py --data data/set_002_reference --round last
+python attacks/classical/dpa.py \
+  --data data/set_002_reference --round last
 \end{verbatim}
+  Output: \texttt{data/set\_002\_reference/plots/dpa\_byte00\_bit1.png}.
 
-  \item \textbf{Generate Guessing Entropy plot}
+  \item \textbf{Generate Guessing Entropy curves}
 \begin{verbatim}
-python attacks/guessing_entropy.py \
-  --data data/set_002_reference --byte 0 --trials 20
+python attacks/classical/guessing_entropy.py \
+  --data data/set_002_reference --byte 0 --trials 20 --steps 20
+\end{verbatim}
+  Output: \texttt{data/set\_002\_reference/plots/ge\_comparison\_b00.png}.
+
+  \item \textbf{Visualise image encoding pipeline}
+\begin{verbatim}
+python attacks/deep_learning/image_encode.py \
+  --data data/set_002_reference --show
+\end{verbatim}
+  Output: \texttt{data/set\_002\_reference/plots/image\_encoding\_gallery\_b00.png}.
+
+  \item \textbf{Train Hettwer CNN and evaluate KGE}
+\begin{verbatim}
+python attacks/deep_learning/hettwer_sca.py \
+  --data data/set_002_reference --round last \
+  --channels gasf+gadf --byte 0
+\end{verbatim}
+  Outputs: \texttt{hettwer\_gasf+gadf\_training\_b00.png},
+           \texttt{hettwer\_gasf+gadf\_ge\_b00.png}.
+
+  \item \textbf{Capture real traces from Pro Tinkrer } (hardware required)
+\begin{verbatim}
+python capture/capture.py \
+  --board adafruit_trinket_pro_5v16mhz \
+  --port /dev/tty.usbmodem101 \
+  --num-traces 50000 --scope-points 30000
 \end{verbatim}
 \end{enumerate}
 

@@ -1,127 +1,326 @@
 \section{Experimental Results}
 \label{sec:results}
 
-All experiments use the reference dataset described in
-Section~\ref{sec:method:ref}: $D = 2{,}000$ traces, $T = 29{,}000$ samples.
+Results cover three datasets across two hardware platforms.
+\S\ref{sec:results:trinket} and \S\ref{sec:results:trinket_allrounds}
+present Pro Tinkrer (ATmega328P) results: first, a first-round-only capture
+(\texttt{set\_013}) that achieves the headline 200-trace full key recovery;
+second, a full-AES-rounds capture (\texttt{set\_003}) where CPA recovers
+14/16 key bytes.
+\S\ref{sec:results:cpa}--\ref{sec:results:dpa} use the
+\textbf{reference dataset} (Section~\ref{sec:method:ref},
+$D=2{,}000$, $T=29{,}000$, last-round) as a known-good validation baseline
+for the attack implementations.
+GE and deep learning results follow in \S\ref{sec:results:ge}
+and \S\ref{sec:results:dl}.
 
-\subsection{CPA Key Recovery}
+\subsection{Pro Tinkrer : First-Round CPA (Real Hardware)}
+\label{sec:results:trinket}
 
-Table~\ref{tab:cpa} summarises CPA results for all 16 key bytes.
-The attack was run with leakage constant $c$ swept from 0 to 255.
-Key recovery verified (via backward key schedule against the known key) at
-$c = 2$.
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=\linewidth]{figures/1st_round_only_trace_trinket.png}
+  \caption{TRINKET-TRACE: Pro Tinkrer power traces
+           (2{,}000 traces, only first round AES-128, 30{,}000 samples each).}
+  \label{fig:trinket_cpa_log}
+\end{figure}
+
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=\linewidth]{figures/success_cpa_on_1stround_trinket_data.png}
+  \caption{Successful terminal output of the first-round CPA attack on the Pro Tinkrer .
+           All 16 bytes recover the correct key byte at rank 1, const\,$=0$,
+           confirming the pure HW model is sufficient and efficient if attacker can obtain scope on exact round timing.}
+  \label{fig:trinket_cpa_log}
+\end{figure}
+
+\subsubsection*{Key finding}
+
+First-round CPA on the Pro Tinkrer with the \textbf{pure HW model ($c=0$)}
+recovers all 16 bytes of the original 128-bit key at rank~1.
+No HD model is needed for any byte.
+The full key \texttt{2B 7E 15 16 28 AE D2 A6 AB F7 15 88 09 CF 4F 3C}
+is directly recovered (no backward key schedule required for a first-round
+attack).
+Across byte positions the attack converges with as few as
+\textbf{200 traces} for the cleanest bytes and no more than
+\textbf{2{,}000 traces} for the most difficult byte---a remarkably low
+trace budget for a physical oscilloscope setup.
 
 \begin{table}[H]
 \centering
-\caption{CPA last-round key recovery. Rank = rank of correct round-10 byte
-         among 256 hypotheses. All 16 bytes at rank 1; $c=2$ used.}
-\label{tab:cpa}
-\begin{tabular}{@{}ccccc@{}}
+\caption{First-round CPA on Pro Tinkrer 5\,V (ATmega328P, $c=0$, HW model).
+         All 16 bytes at rank~1.
+         Key directly recovered: no backward key schedule needed.}
+\label{tab:trinket_cpa}
+\begin{tabular}{@{}ccc@{}}
 \toprule
-Byte & Correct $k_{10,b}$ & CPA guess & Rank & Const needed \\
+Byte & Correct $k_{b}$ & Rank (const $c=0$) \\
 \midrule
- 0  & \texttt{D0} & \texttt{D0} & 1 & 0 \\
- 1  & \texttt{14} & \texttt{14} & 1 & 0 \\
- 2  & \texttt{F9} & \texttt{F9} & 1 & 0 \\
- 3  & \texttt{A8} & \texttt{A8} & 1 & 0 \\
- 4  & \texttt{C9} & \texttt{C9} & 1 & 0 \\
- 5  & \texttt{EE} & \texttt{EE} & 1 & 0 \\
- 6  & \texttt{25} & \texttt{25} & 1 & 0 \\
- 7  & \texttt{89} & \texttt{89} & 1 & 0 \\
- 8  & \texttt{E1} & \texttt{E1} & 1 & 0 \\
- 9  & \texttt{3F} & \texttt{3F} & 1 & 0 \\
-10  & \texttt{0C} & \texttt{0C} & 1 & 0 \\
-11  & \texttt{C8} & \texttt{D1} & \textbf{2} & \textbf{2} \\
-12  & \texttt{B6} & \texttt{B6} & 1 & 0 \\
-13  & \texttt{63} & \texttt{63} & 1 & 0 \\
-14  & \texttt{0C} & \texttt{0C} & 1 & 0 \\
-15  & \texttt{A6} & \texttt{A6} & 1 & 0 \\
+ 0  & \texttt{2B} & 1 \\
+ 1  & \texttt{7E} & 1 \\
+ 2  & \texttt{15} & 1 \\
+ 3  & \texttt{16} & 1 \\
+ 4  & \texttt{28} & 1 \\
+ 5  & \texttt{AE} & 1 \\
+ 6  & \texttt{D2} & 1 \\
+ 7  & \texttt{A6} & 1 \\
+ 8  & \texttt{AB} & 1 \\
+ 9  & \texttt{F7} & 1 \\
+10  & \texttt{15} & 1 \\
+11  & \texttt{88} & 1 \\
+12  & \texttt{09} & 1 \\
+13  & \texttt{CF} & 1 \\
+14  & \texttt{4F} & 1 \\
+15  & \texttt{3C} & 1 \\
 \bottomrule
 \end{tabular}
 \end{table}
 
-Fifteen bytes are recovered at rank 1 with the pure HW model ($c=0$).
-Byte 11 requires $c=2$, indicating the leakage for that byte follows an HD
-model (transitions from value 2).
-This is consistent with the reference notebook results on the same dataset.
-With $c=2$ the full 128-bit original key is recovered:
-\texttt{2B 7E 15 16 28 AE D2 A6 AB F7 15 88 09 CF 4F 3C}.
+\subsubsection*{Why first-round leakage is cleaner}
 
-Figure~\ref{fig:cpa} shows the three-panel CPA diagnostic for byte 0
-(correct hypothesis $j = \texttt{0xD0}$).
+The first SubBytes operation ($v_{d,b} = S[p_{d,b} \oplus k_b]$) is the
+\emph{first non-linear operation on any key-dependent data}.
+Before it executes, no key-dependent value has yet transitioned between
+states in any register, bus, or pipeline stage.
+The power consumed is therefore governed almost purely by the
+Hamming weight of $v_{d,b}$---there is no prior register state to create
+an HD component.
+This is why the HW model ($c=0$) is exact for all 16 bytes on the Trinket,
+unlike the last-round reference dataset where register pipeline state
+at byte 11 introduces a measurable HD component ($c=2$).
 
-\begin{figure}[H]
-  \centering
-  \includegraphics[width=\linewidth]{figures/cpa_byte00.png}
-  \caption{CPA diagnostic for key byte 0, $c=2$.
-           \textbf{Top}: correlation $r_{i,j}$ over all 29{,}000 time samples
-           for the correct hypothesis (green, $j=\texttt{0xD0}$) vs. a wrong
-           one (red, $j=\texttt{0x54}$, lowest-scoring).
-           The correct guess shows a pronounced negative spike near sample
-           1{,}000, corresponding to the last-round SubBytes operation.
-           \textbf{Bottom-left}: max $|r_{i,j}|$ across all time samples for
-           each of the 256 hypotheses; correct hypothesis (green bar)
-           stands clearly above the noise floor.
-           \textbf{Bottom-right}: $|r_{i,j}|$ heatmap; the correct
-           hypothesis row is the brightest band.}
-  \label{fig:cpa}
-\end{figure}
+The ATmega328P reinforces this effect.
+As an 8-bit von Neumann processor with a two-stage pipeline and no
+out-of-order execution, each S-Box table lookup produces a clean,
+isolated power spike whose height is proportional to the
+Hamming weight of the byte fetched from flash.
+There is no speculative execution, branch prediction, or cache state
+to obscure the signal.
 
-\subsection{DPA Key Recovery}
+\subsubsection*{Practical significance}
 
-DPA was run with bit position $\ell$ swept from 0 to 7.
-Full key recovery was achieved at $\ell = 1$.
-
-\begin{itemize}
-  \item \textbf{Bit 0}: 14/16 bytes correct; bytes 3 and 15 wrong.
-        Backward key schedule fails verification.
-  \item \textbf{Bit 1}: 16/16 bytes correct.
-        Recovered round-10 key:
-        \texttt{D0 14 F9 A8 C9 EE 25 89 E1 3F 0C C8 B6 63 0C A6}.
-        Original key: \texttt{2B 7E 15 16 28 AE D2 A6 AB F7 15 88 09 CF 4F 3C}.
-\end{itemize}
-
-Figure~\ref{fig:dpa} shows the DPA diagnostic for byte 0, bit $\ell = 1$.
+Recovering a 128-bit AES key from a microcontroller with \textbf{200 traces}
+from a bench oscilloscope quantifies the concrete threat posed by power SCA
+to unprotected embedded implementations.
+At 1 trace per second (typical serial + scope arm latency), this represents
+a 3-minute attack window---well within the physical-access window assumed
+by the threat model (Section~\ref{sec:threat}).
 
 \begin{figure}[H]
   \centering
-  \includegraphics[width=\linewidth]{figures/dpa_byte00_bit1.png}
-  \caption{DPA diagnostic for key byte 0, bit $\ell = 1$.
-           \textbf{Top}: differential mean $\Delta_j(i)$ over 29{,}000 time
-           samples; the correct hypothesis (green, $j=\texttt{0xD0}$) shows a
-           sharp peak near the last-round SubBytes window while the wrong
-           hypothesis (red) is flat.
-           \textbf{Bottom-left}: distinguisher scores for all 256 hypotheses.
-           \textbf{Bottom-right}: full $\Delta_j(i)$ heatmap.}
-  \label{fig:dpa}
+  \includegraphics[width=\linewidth]{figures/first_round_trinket_trace_view.png}
+  \caption{Data overview for Pro Tinkrer first-round capture
+           (\texttt{set\_013}, ATmega328P, 30{,}000 samples).
+           Top: raw trace overlay showing tight trigger alignment.
+           Middle: mean trace with the first-round AES SubBytes window
+           clearly distinguishable from the idle baseline.
+           Bottom: variance trace peaking at the SubBytes window,
+           confirming data-dependent switching activity.}
+  \label{fig:trinket_firstround_data_view}
 \end{figure}
+
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=\linewidth]{figures/cpa_byte00_tinkerer_first_round_trace.png}
+  \caption{CPA diagnostic for Pro Tinkrer , first-round, byte~0 ($c=0$, HW model).
+           \textbf{Top:} correlation trace $r_{i,j}$ over 30{,}000 samples;
+           correct hypothesis (green, $j=\texttt{0x2B}$) shows a clear spike
+           at the first-round SubBytes window.
+           \textbf{Bottom-left:} max $|r_{i,j}|$ scores for all 256 hypotheses;
+           correct byte stands well above the noise floor.
+           \textbf{Bottom-right:} $|r_{i,j}|$ heatmap --- correct row is the
+           brightest band.}
+  \label{fig:trinket_cpa}
+\end{figure}
+
+\subsection{Pro Tinkrer : All-Rounds CPA (set\_003, 14/16 Bytes)}
+\label{sec:results:trinket_allrounds}
+
+Dataset \texttt{set\_003\_adafruit\_tinkrerpro5v16mhz} captures all ten AES
+rounds on the same ATmega328P target with 2{,}000 traces and 30{,}000 samples
+per trace.
+Although the capture window spans all ten AES rounds, CPA is run as a
+\emph{first-round} attack targeting $S[p_{d,b} \oplus k_b]$---the
+same intermediate as in \texttt{set\_013}---with the leakage constant swept
+$c \in \{0,\ldots,255\}$.
+The longer capture window introduces additional switching noise from rounds
+2--10, raising the effective noise floor compared to the first-round-only
+capture.
+\textbf{14 of 16 key bytes are recovered at rank~1} with $c=2$; bytes 14
+and 15 do not converge under any tested const value and are the only
+failures.
+
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=\linewidth]{figures/adafruit_trinket_10round_plot_scope_image.png}
+  \caption{Data overview for Pro Tinkrer all-rounds capture
+           (\texttt{set\_003}, 2{,}000 traces, 30{,}000 samples each).
+           The full AES computation is visible as a sustained region of
+           elevated switching activity spanning all ten rounds.
+           Compare with set\_013 (Figure~\ref{fig:trinket_firstround_data_view})
+           where only the first-round window is captured.}
+  \label{fig:trinket_allrounds_data_view}
+\end{figure}
+
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=\linewidth]{figures/trace_view_trinket_10round_2000.png}
+  \caption{All round trace view: with image encoding.}
+  \label{fig:trinket_traces}
+\end{figure}
+
+
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=0.9\linewidth]{figures/t_complete_rounds_const2.png}
+  \caption{CPA run log for set\_003 all-rounds attack.
+           14 of 16 bytes recover the correct key byte at rank~1.
+           The two failing bytes are highlighted.}
+  \label{fig:trinket_allrounds_log}
+\end{figure}
+
+\begin{table}[H]
+\centering
+\caption{All-rounds CPA on Pro Tinkrer (\texttt{set\_003}, first-round attack,
+         $c=2$, 2{,}000 traces).
+         14/16 key bytes recovered at rank~1.
+         Key: \texttt{2B 7E 15 16 28 AE D2 A6 AB F7 15 88 09 CF 4F 3C}.
+         Bytes 14--15 fail to converge.}
+\label{tab:trinket_allrounds_cpa}
+\begin{tabular}{@{}ccccc@{}}
+\toprule
+Byte & Correct $k_{b}$ & CPA guess & Rank & Notes \\
+\midrule
+ 0  & \texttt{2B} & \texttt{2B} & 1 & \\
+ 1  & \texttt{7E} & \texttt{7E} & 1 & \\
+ 2  & \texttt{15} & \texttt{15} & 1 & \\
+ 3  & \texttt{16} & \texttt{16} & 1 & \\
+ 4  & \texttt{28} & \texttt{28} & 1 & \\
+ 5  & \texttt{AE} & \texttt{AE} & 1 & \\
+ 6  & \texttt{D2} & \texttt{D2} & 1 & \\
+ 7  & \texttt{A6} & \texttt{A6} & 1 & \\
+ 8  & \texttt{AB} & \texttt{AB} & 1 & \\
+ 9  & \texttt{F7} & \texttt{F7} & 1 & \\
+10  & \texttt{15} & \texttt{15} & 1 & \\
+11  & \texttt{88} & \texttt{88} & 1 & \\
+12  & \texttt{09} & \texttt{09} & 1 & \\
+13  & \texttt{CF} & \texttt{CF} & 1 & \\
+14  & \texttt{4F} & \textbf{26} & - \\
+15  & \texttt{3C} & \textbf{46} & - \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+The two non-converging bytes (14 and 15) illustrate the noise penalty of
+capturing the full AES window.
+In \texttt{set\_013} the scope window contains only the first round, so the
+leakage SNR is maximal; in \texttt{set\_003} rounds 2--10 add switching
+activity that raises the noise floor for the first-round distinguisher.
+The HW model fails for bytes 14--15 even after sweeping all 256 const values,
+suggesting that a larger trace count or a segmented capture isolating the
+first-round window (as in \texttt{set\_013}) would resolve them.
+
+DPA was also run on \texttt{set\_003} but did not converge for any bit
+position on the real hardware captures---consistent with DPA's known
+lower data efficiency compared to CPA (it requires approximately $10\times$
+more traces to reach the same GE level, as confirmed on the reference
+dataset in Figure~\ref{fig:ge}).
+
 
 \subsection{Guessing Entropy}
 \label{sec:results:ge}
 
-% ── TODO ──────────────────────────────────────────────────────────────────────
-% GE curves require running attacks/guessing_entropy.py on a trace set.
-% Once real hardware traces (set_001_pico_real) are collected, replace this
-% placeholder with the actual GE vs N_traces plots.
-% ─────────────────────────────────────────────────────────────────────────────
+Guessing Entropy curves quantify convergence speed as a function of $N$
+traces (Section~\ref{sec:method:metrics}), averaged over 20 random
+sub-sampling trials per $N$ point.
 
-\textbf{Note:} Guessing Entropy curves comparing DPA and CPA as a function of
-trace count $N$ are pending real hardware trace acquisition
-(dataset \texttt{set\_001\_pico\_real}).
-The script \texttt{attacks/guessing\_entropy.py} automates GE estimation via
-random subsampling trials and will populate this section once traces are
-collected.
-A placeholder figure location is reserved here for the final submission.
+\subsubsection*{Pro Tinkrer --- First-Round CPA}
+
+Empirically, the Trinket first-round CPA with $c=0$ converges to
+$\mathrm{GE}=1$ for all 16 key bytes within \textbf{200--2{,}000 traces},
+depending on byte position (Section~\ref{sec:results:trinket}).
+The GE curve below captures this precisely; generating it confirms the
+trace complexity in a statistically rigorous way.
 
 \begin{figure}[H]
   \centering
-  \fbox{\parbox{0.9\linewidth}{\centering\vspace{2cm}
-    \textit{[PLACEHOLDER]} \\
-    GE vs.\ $N_\text{traces}$ for CPA and DPA on \texttt{set\_001\_pico\_real}. \\
-    Generated by \texttt{attacks/guessing\_entropy.py --data data/set\_001\_pico\_real}
-    \vspace{2cm}}}
-  \caption{Guessing Entropy comparison: DPA vs.\ CPA on real Pico hardware
-           traces. Target: key byte 0. Horizontal dashed line at GE\,=\,1
-           marks full convergence.}
+  \includegraphics[width=\linewidth]{figures/firstroundonlycapture_tinkrer_ge_comparison_b00.png}
+  \caption{Guessing Entropy for first-round CPA on the Pro Tinkrer (HW model,
+           byte 0, \texttt{set\_013}).
+           Rapid convergence at $\leq$2{,}000 traces confirms the
+           empirical result in Table~\ref{tab:trinket_cpa}.}
+  \label{fig:trinket_ge}
+\end{figure}
+
+\subsubsection*{Reference Dataset --- CPA vs.\ DPA}
+
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=\linewidth]{figures/reference_ge_comparison_b00.png}
+  \caption{Guessing Entropy comparison: DPA vs.\ CPA HW model ($c=0$)
+           vs.\ CPA HD model ($c=2$) on the reference dataset
+           (\texttt{set\_002\_reference}), byte 0.
+           Dashed line at GE\,=\,1.5 marks the trace-complexity threshold.
+           DPA requires approximately $10\times$ more traces than CPA to
+           converge, consistent with the first-round result in
+           Figure~\ref{fig:trinket_ge}.}
   \label{fig:ge}
 \end{figure}
+
+\subsection{Deep Learning Key Recovery (Hettwer CNN)}
+\label{sec:results:dl}
+
+The Hettwer et al.\ CNN (Section~\ref{sec:method:dl}) is trained as a
+profiling attack on the \textbf{first-round-only} Pro Tinkrer dataset
+(ATmega328P, \texttt{set\_013}, 10{,}000 traces at reduced sample rate),
+targeting key byte 0 with the GASF+GADF channel combination.
+The model is trained once on a profiling split and evaluated on an attack
+split; KGE (Equation~\ref{eq:kge_score}) is the convergence metric.
+
+\textbf{Dataset size caveat and ongoing investigation.}
+Hettwer et al.\ recommend 50{,}000 training traces and 10{,}000 validation
+traces (60{,}000 total) for the network to reach functional validation
+accuracy on the S-Box classification task.
+Our largest available dataset contains only \textbf{10{,}000 traces in total},
+which is smaller than the paper's validation set alone.
+The training curves (Figure~\ref{fig:dl_training}) therefore show the model
+operating in an under-resourced regime: validation accuracy does not plateau
+at a level consistent with a fully converged profiling model.
+The KGE results (Figure~\ref{fig:dl_kge}) should be interpreted as a
+\emph{best-effort result under data constraints}, not a fair comparison
+against the paper's reported performance.
+
+Beyond the data constraint, the deep learning exploration is inherently
+\textbf{time-intensive}: each training run with early stopping (patience\,=\,20)
+takes tens of minutes on available hardware, and a full sweep across all four
+channel combinations (GASF, GADF, RP, MTF, GASF+GADF) following
+Table~III of Hettwer et al.\ requires multiple such runs per dataset.
+This investigation is therefore \textbf{ongoing}; the results shown here
+represent the current state of a work in progress.
+Capturing the planned 50{,}000-trace set and completing the channel-combination
+sweep are the two remaining steps for a fully representative DL evaluation.
+
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=\linewidth]{figures/dnn/hettwer_gasf+gadf_training_b00.png}
+  \caption{Hettwer CNN training curves (GASF+GADF, byte 0, Pro Tinkrer 
+           first-round dataset).
+           Left: categorical cross-entropy loss; right: S-Box classification
+           accuracy.
+           Dashed lines show validation set; early stopping fires at
+           patience\,=\,20.}
+  \label{fig:dl_training}
+\end{figure}
+
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=\linewidth]{figures/dnn/hettwer_gasf+gadf_ge_b00.png}
+  \caption{Key Guessing Entropy (KGE) for the Hettwer CNN (GASF+GADF,
+           byte 0, Pro Tinkrer first-round dataset),
+           following Hettwer et al.\ 2020 Fig.\,4.
+           Dashed line at KGE\,=\,1 marks full convergence.
+           Compare with the classical GE curves in Figure~\ref{fig:ge}.}
+  \label{fig:dl_kge}
+\end{figure}
+

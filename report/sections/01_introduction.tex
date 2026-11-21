@@ -22,30 +22,40 @@ than DPA in terms of trace complexity.
 \subsection*{Project Goal}
 
 The goal of this project is to perform a \emph{quantitative comparative
-analysis} of DPA and CPA on a real embedded target---the Raspberry Pi Pico
-RP2040 microcontroller~\cite{rp2040datasheet}---running unprotected AES-128.
+analysis} of DPA, CPA, and a deep learning alternative on real embedded
+targets running unprotected AES-128.
+Three physical boards were evaluated---Raspberry Pi Pico (RP2040), Arduino
+Uno R4 Minima (RA4M1), and the Adafruit Pro Tinkrer 5\,V
+(ATmega328P)~\cite{atmega328p,adafruit_trinket_pro}---with the Trinket
+as the successful real-hardware capture target.
+Primary quantitative evaluation uses the publicly available dpa-on-aes
+reference dataset~\cite{oflynn2015chipwhisperer}, which provides a clean
+baseline for validating the attack implementations.
 Specifically, the project targets the following measurements:
 
 \begin{itemize}
-  \item \textbf{Key recovery success}: Does each attack recover the full
+  \item \textbf{Key recovery success}: Do CPA and DPA recover the full
         128-bit key from the reference trace set?
-  \item \textbf{Rank of the correct hypothesis}: What is the rank of the
-        correct key byte across all 256 candidates as a function of the
-        number of traces used?
   \item \textbf{Leakage model sensitivity}: Does the HW model suffice, or
         do certain bytes require a Hamming-Distance (HD) variant?
   \item \textbf{Trace complexity} ($N_\text{traces}$): How many traces are
         needed before each attack converges (Guessing Entropy reaches 1)?
+  \item \textbf{Deep learning comparison}: Can an image-encoding CNN
+        (Hettwer et al.~\cite{hettwer2020encoding}) achieve lower trace
+        complexity than the classical attacks on the same dataset?
 \end{itemize}
 
 \subsection*{Report Structure}
 
 Section~\ref{sec:threat} defines the threat model and system application.
 Section~\ref{sec:vuln} analyses the vulnerability and countermeasure context.
-Section~\ref{sec:method} describes the implementation---firmware, acquisition
-pipeline, and attack algorithms.
-Section~\ref{sec:results} presents experimental results with diagnostic plots.
-Section~\ref{sec:discussion} compares DPA and CPA and discusses limitations.
+Section~\ref{sec:method} describes the implementation---board selection,
+firmware, acquisition pipeline, classical attack algorithms, and the
+deep learning image-encoding pipeline.
+Section~\ref{sec:results} presents experimental results with diagnostic plots
+for CPA, DPA, GE curves, and deep learning KGE.
+Section~\ref{sec:discussion} compares DPA and CPA, discusses hardware
+limitations, and contextualises the deep learning extension.
 Section~\ref{sec:conclusion} concludes and outlines future work.
 Hardware setup details and video evidence are in Appendix~\ref{app:hw};
 the software repository structure is in Appendix~\ref{app:repo}.

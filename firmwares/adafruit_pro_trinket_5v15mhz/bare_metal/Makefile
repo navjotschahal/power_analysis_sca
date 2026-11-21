@@ -9,7 +9,7 @@ TARGET = aes_target
 TRIGGER_ROUND = 1
 
 # ── Programmer ────────────────────────────────────────────────────────────────
-# Pro Trinket uses its built-in USBtiny bootloader.
+# Pro Tinkrer uses its built-in USBtiny bootloader.
 # Press the reset button, wait for the red LED to blink, then run 'make flash'.
 PROGRAMMER = usbtiny
 
@@ -57,7 +57,7 @@ $(TARGET).hex: $(TARGET).elf
 size: $(TARGET).elf
 	$(SIZE) --mcu=$(MCU) -C $<
 
-# Press reset on Pro Trinket (red LED blinks), then immediately run this.
+# Press reset on Pro Tinkrer (red LED blinks), then immediately run this.
 flash: $(TARGET).hex
 	$(AVRDUDE) -C $(AVRDUDE_CFG) -c $(PROGRAMMER) -p $(MCU) \
 	    -U flash:w:$<:i

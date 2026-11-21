@@ -3,14 +3,18 @@
 
 \subsection{System Application}
 
-The target system is a \textbf{Raspberry Pi Pico} (RP2040, dual-core ARM
-Cortex-M0+ at 125\,MHz) executing AES-128 in ECB mode using the
+The primary real-hardware target is an \textbf{Adafruit Pro Tinkrer 5\,V}
+(ATmega328P, 16\,MHz) executing AES-128 in ECB mode using the
 \texttt{tiny-AES-c} library~\cite{tinyaes}.
-The device receives 16-byte plaintexts over USB serial, encrypts them, and
-returns the ciphertext.
-A dedicated GPIO pin (GPIO\,22) is asserted high immediately before
-\texttt{AES\_ECB\_encrypt} and low immediately after, providing a hardware
-trigger signal to a bench oscilloscope.
+The device receives 16-byte plaintexts over a USB-UART serial link,
+encrypts them, and returns the 16-byte ciphertext.
+A dedicated GPIO pin (GPIO\,8) is asserted high immediately before
+\texttt{AES\_ECB\_encrypt} and low immediately after, providing a
+hardware trigger signal to a bench oscilloscope.
+Quantitative analysis in this report uses the publicly available
+dpa-on-aes reference dataset~\cite{oflynn2015chipwhisperer}
+(Section~\ref{sec:method:ref}) to validate the attack implementations
+independently of oscilloscope data quality.
 
 \subsection{Adversary Threat Model}
 

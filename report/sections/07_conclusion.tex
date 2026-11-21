@@ -3,51 +3,73 @@
 
 \subsection{Summary}
 
-This project implemented and evaluated two classical power side-channel attacks
----DPA and CPA---targeting AES-128 on an RP2040 microcontroller.
+This project implemented and evaluated two classical power side-channel
+attacks---DPA and CPA---and a deep learning extension targeting AES-128
+on real embedded hardware and a public reference dataset.
 
 \begin{itemize}
-  \item A complete hardware test bench was built: Pico firmware with a hardware
-        trigger, pyvisa-based oscilloscope acquisition, and a structured
-        \texttt{.npy} dataset format.
+  \item A complete hardware measurement pipeline was built: firmware with a
+        hardware trigger (GPIO\,8), a pyvisa-based oscilloscope acquisition
+        system, and a structured \texttt{.npy} dataset format.
 
-  \item CPA with the Pearson correlation distinguisher recovers all 16 bytes
-        of the round-10 key at rank 1 using 2{,}000 traces.
+  \item Three physical targets were evaluated.
+        The Raspberry Pi Pico (RP2040) failed due to on-chip SMPS noise.
+        The Arduino Uno R4 Minima (RA4M1) failed due to insufficient trace
+        count and noisy supply regulation.
+        The \textbf{Adafruit Pro Tinkrer 5\,V} (ATmega328P) succeeded with
+        a clean linear supply and is the real-hardware target for 50{,}000
+        planned traces.
+
+  \item CPA (Pearson correlation distinguisher) recovers all 16 bytes of
+        the round-10 key at rank 1 from 2{,}000 reference traces.
         Fifteen bytes succeed under the HW model ($c=0$); byte 11 requires
-        an HD model ($c=2$).
+        an HD model ($c=2$), indicating a register pipeline transition.
 
-  \item DPA with the differential-mean distinguisher recovers all 16 bytes
-        at bit position $\ell=1$ using the same 2{,}000 traces.
+  \item DPA (differential mean distinguisher) recovers all 16 bytes
+        at bit position $\ell=1$ from the same 2{,}000 traces.
 
   \item Both attacks recover the original 128-bit key
-        (\texttt{2B 7E 15 16 28 AE D2 A6 AB F7 15 88 09 CF 4F 3C})
+        \texttt{2B 7E 15 16 28 AE D2 A6 AB F7 15 88 09 CF 4F 3C}
         via backward key schedule.
 
-  \item The byte-11 HD leakage finding provides a concrete example of
-        how leakage model selection affects CPA but not DPA, highlighting a
-        practical advantage of DPA in model-agnostic scenarios.
+  \item \textbf{First-round CPA on the Pro Tinkrer } recovers all 16 key bytes
+        at rank~1 in as few as \textbf{200 traces} (Section~\ref{sec:results:trinket}),
+        quantifying the real-world threat to unprotected AES firmware.
+        CPA on the full-window capture (\texttt{set\_003}) recovers 14/16
+        bytes; the two failures are attributed to additional noise from rounds
+        2--10 in the capture window.
+
+  \item The deep learning pipeline from Hettwer et al.\ (HOST 2020) is
+        fully implemented and produces training and KGE results
+        (Section~\ref{sec:results:dl}).
+        The evaluation is data-limited (10{,}000 traces vs.\ the 60{,}000
+        the paper requires); collecting the planned 50{,}000-trace set is
+        the prerequisite for a fair DL vs.\ CPA comparison.
 \end{itemize}
 
 \subsection{Future Work}
 
 \begin{description}
-  \item[Guessing Entropy on real hardware traces.]
-    Once acquisition on the physical Pico is complete
-    (\texttt{attacks/guessing\_entropy.py --data data/set\_001\_pico\_real}),
-    GE vs.\ $N_\text{traces}$ curves for both attacks will provide a
-    quantitative trace-complexity comparison.
+  \item[50{,}000-trace Pro Tinkrer capture.]
+    Collecting \texttt{set\_004} (50{,}000 traces) would enable a
+    statistically robust GE curve on real oscilloscope data and satisfy
+    the training-data requirement for a fair deep learning evaluation.
+    It would also resolve whether bytes 14--15 of the all-rounds attack
+    converge given more data.
+
+  \item[Deep learning at full scale.]
+    Retrain the Hettwer CNN on the 50{,}000-trace set and compare KGE
+    against the classical GE curves.
+    Evaluate all channel combinations (GASF, GADF, RP, MTF, GASF+GADF)
+    following Table~III of Hettwer et al.~\cite{hettwer2020encoding} to
+    reproduce the channel-comparison result from the paper.
 
   \item[Masking countermeasure evaluation.]
-    Applying Boolean masking (first-order) to the firmware S-Box lookup
-    and measuring the increase in required traces for second-order attacks
-    would directly address the defense portion of the proposal.
-
-  \item[SNR characterisation across noise levels.]
-    Injecting controlled additive noise into simulated traces and measuring
-    at what SNR each attack fails would produce the characterisation proposed
-    in the original plan.
+    Apply first-order Boolean masking to the firmware S-Box lookup and
+    measure the increase in required traces for second-order CPA/DPA.
 
   \item[EM side channel.]
-    Replacing the power probe with an EM probe positioned over the RP2040
-    core would allow comparison of power vs.\ EM leakage on the same target.
+    Replace the power probe with a near-field EM probe positioned over
+    the ATmega328P core and compare EM vs.\ power leakage SNR on the
+    same target.
 \end{description}

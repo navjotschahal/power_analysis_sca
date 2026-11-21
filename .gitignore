@@ -20,4 +20,28 @@ references/
 *.h5
 *.keras
 
-data/
+# LaTeX intermediates
+*.fls
+*.fdb_latexmk
+*.synctex.gz
+
+# Build outputs
+build/
+*.o
+
+# Raw phone media (PNG/JPG exports are what the report uses)
+*.HEIC
+*.heic
+*.MOV
+*.mov
+
+# Duplicate of report/main.pdf, above GitHub's 100 MB limit
+nschahal_project_report.pdf
+
+# Datasets: ignore contents, keep schema and per-set metadata
+# Sources and restore steps: context/06_sources/external_sources.md
+data/**
+!data/**/
+!data/DATA_FORMAT.md
+!data/*/meta.json
+data/ascad2/ASCAD_repo/

@@ -1,5 +1,5 @@
 /*
- * ATmega328P (Adafruit Pro Trinket 16 MHz) bare-metal AES-128 SCA target.
+ * ATmega328P (Adafruit Pro Tinkrer 16 MHz) bare-metal AES-128 SCA target.
  *
  * Protocol (identical to all other firmwares in this project):
  *   host -> chip  : 16-byte plaintext  via UART

@@ -1,18 +1,18 @@
-// AES-128 SCA target for Adafruit Pro Trinket 16 MHz (ATmega328P).
+// AES-128 SCA target for Adafruit Pro Tinkrer 16 MHz (ATmega328P).
 // Protocol mirrors the Pico and UNO firmwares exactly:
 //   receive 16-byte plaintext, trigger HIGH, AES-128 encrypt, trigger LOW, send 16-byte ciphertext.
 //
 // Requires: "Crypto" library by rweather  (Sketch > Include Library > Manage Libraries > search "Crypto")
 //
 // Wiring:
-//   USB-UART adapter TX  ->  Pro Trinket pin 0  (RX)
-//   USB-UART adapter RX  ->  Pro Trinket pin 1  (TX)
+//   USB-UART adapter TX  ->  Pro Tinkrer pin 0  (RX)
+//   USB-UART adapter RX  ->  Pro Tinkrer pin 1  (TX)
 //   USB-UART adapter GND ->  GND
-//   Pro Trinket pin 8    ->  Oscilloscope EXT TRIG (or Ch2)
+//   Pro Tinkrer pin 8    ->  Oscilloscope EXT TRIG (or Ch2)
 //
 // Upload:
-//   1. Arduino IDE: Tools > Board > "Adafruit Pro Trinket 16MHz USB (ATmega328P)"
-//   2. Click Upload, then immediately press the Pro Trinket reset button.
+//   1. Arduino IDE: Tools > Board > "Adafruit Pro Tinkrer 16MHz USB (ATmega328P)"
+//   2. Click Upload, then immediately press the Pro Tinkrer reset button.
 //      The red LED blinks fast (~10 s) while the bootloader is active.
 
 #include <AES.h>

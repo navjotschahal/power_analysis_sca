@@ -1,0 +1,28 @@
+{
+  "label": "set_023_adafruit_trinket_pro_5v16mhz",
+  "key": [
+    43,
+    126,
+    21,
+    22,
+    40,
+    174,
+    210,
+    166,
+    171,
+    247,
+    21,
+    136,
+    9,
+    207,
+    79,
+    60
+  ],
+  "key_hex": "2b7e151628aed2a6abf7158809cf4f3c",
+  "device": "adafruit_trinket_pro_5v16mhz",
+  "N": 100,
+  "T": 16000,
+  "snr": null,
+  "noise_level": null,
+  "notes": "shunt on 5 V using 10 Ohm, ethernet/vxi11 just the all round | port=/dev/tty.usbserial-0001 baud=115200 scope_points=30000 scope_transport=ethernet/vxi11"
+}

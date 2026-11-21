@@ -1,0 +1,28 @@
+{
+  "label": "set_027_trinket_5v",
+  "key": [
+    43,
+    126,
+    21,
+    22,
+    40,
+    174,
+    210,
+    166,
+    171,
+    247,
+    21,
+    136,
+    9,
+    207,
+    79,
+    60
+  ],
+  "key_hex": "2b7e151628aed2a6abf7158809cf4f3c",
+  "device": "trinket_5v",
+  "N": 10000,
+  "T": 905,
+  "snr": null,
+  "noise_level": null,
+  "notes": "capture=segmented_memory batch_size=500 port=/dev/tty.usbserial-0001 baud=115200 scope_points=30000 scope_transport=ethernet/hislip"
+}
